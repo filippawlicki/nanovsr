@@ -36,12 +36,12 @@ The baseline NanoVSR-644k reaches **28.64 dB PSNR on REDS4 at 27.20 FPS** on an 
 
 All models perform 4× upscaling and were trained with the two-stage curriculum (50k iterations on Vimeo-90K, then 100k on REDS). PSNR/SSIM: RGB for REDS4, Y-channel for Vid4 and Vimeo-90K-T. Runtime is ms/frame for a 180×320 input on an H100 (FP32); FPS is measured on Jetson Orin NX 16GB (25 W) with TensorRT FP16, 180×320 input, T=15.
 
-| Model | Params | Blocks N | Channels F | REDS4 | Vid4 | Vimeo-90K-T | H100 (ms) | Orin NX (FPS) |                                                Download                                                 |
-| :--- | ---: | ---: | ---: | :---: | :---: | :---: | ---: | ---: |:-------------------------------------------------------------------------------------------------------:|
-| NanoVSR-226k | 226k | 8 | 32 | 28.23 / 0.8057 | 25.26 / 0.7252 | 34.31 / 0.9130 | 1.910 | 43.86 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_226k.pth)       |
-| **NanoVSR-644k** (baseline) | 644k | 12 | 48 | 28.64 / 0.8215 | 26.05 / 0.7761 | 35.00 / 0.9226 | 2.982 | 27.20 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_644k.pth)       |
-| NanoVSR-1.7M | 1.7M | 20 | 64 | 29.15 / 0.8364 | 26.44 / 0.7964 | 35.49 / 0.9294 | 4.268 | 19.58 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_1.7m.pth)       |
-| NanoVSR-5.4M | 5.4M | 30 | 96 | 29.73 / 0.8526 | 26.76 / 0.8089 | 35.85 / 0.9335 | 8.547 | 8.66 |             [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_5.4m.pth)              |
+| Model | Params | REDS4 | Vid4 | Vimeo-90K-T | H100 (ms) | Orin NX (FPS) |                                                Download                                                 |
+| :--- | ---: | :---: | :---: | :---: | ---: | ---: |:-------------------------------------------------------------------------------------------------------:|
+| NanoVSR-226k | 226k | 28.23 / 0.8057 | 25.26 / 0.7252 | 34.31 / 0.9130 | 1.910 | 43.86 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_226k.pth)       |
+| **NanoVSR-644k** (baseline) | 644k | 28.64 / 0.8215 | 26.05 / 0.7761 | 35.00 / 0.9226 | 2.982 | 27.20 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_644k.pth)       |
+| NanoVSR-1.7M | 1.7M | 29.15 / 0.8364 | 26.44 / 0.7964 | 35.49 / 0.9294 | 4.268 | 19.58 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_1.7m.pth)       |
+| NanoVSR-5.4M | 5.4M | 29.73 / 0.8526 | 26.76 / 0.8089 | 35.85 / 0.9335 | 8.547 | 8.66 |             [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_5.4m.pth)              |
 
 <details>
 <summary>All architectural configurations (scaling study)</summary>
