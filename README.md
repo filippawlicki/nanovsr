@@ -8,7 +8,7 @@
 
 Gdańsk University of Technology
 
-[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b)](https://arxiv.org/abs/XXXX.XXXXX)
+[![arXiv](https://img.shields.io/badge/arXiv-2607.10495-b31b1b)](https://arxiv.org/abs/2607.10495)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <img src="assets/teaser.gif" width="720" alt="Low-resolution input vs. NanoVSR-644k output (4x upscaling)"/>
