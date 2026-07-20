@@ -235,6 +235,22 @@ Measured edge throughput (TensorRT FP16, T=15):
 | NanoVSR-226k | 270×480 | 10.51 FPS | 19.55 FPS |
 | NanoVSR-644k | 270×480 | 7.19 FPS | 12.82 FPS |
 
+## Citation
+
+If you find this work useful, please cite:
+
+```bibtex
+@misc{pawlicki2026nanovsrrealtimevideosuperresolution,
+      title={NanoVSR: Towards Real-Time Video Super-Resolution on Edge Devices}, 
+      author={Filip Pawlicki and Marcel Kańduła and Marcin Pucek and Kamil Dobies},
+      year={2026},
+      eprint={2607.10495},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2607.10495}, 
+}
+```
+
 ## License
 
 This project is released under the [MIT License](LICENSE).
