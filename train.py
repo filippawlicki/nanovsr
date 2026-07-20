@@ -1,4 +1,3 @@
-import sys
 import os
 import argparse
 from pathlib import Path
@@ -12,11 +11,7 @@ from torch.utils.data.distributed import DistributedSampler
 import numpy as np
 
 from models.nanovsr import NanoVSR
-
-try:
-    from dataset import get_training_dataset, REDSDataset
-except ImportError:
-    raise ImportError("Cannot find dataset.py. Ensure structure is correct.")
+from dataset import get_training_dataset, REDSDataset
 
 def worker_init_fn(worker_id):
     np.random.seed(np.random.get_state()[1][0] + worker_id)
@@ -31,7 +26,7 @@ class CharbonnierLoss(nn.Module):
         loss = torch.sum(torch.sqrt(diff * diff + self.eps))
         return loss / x.numel()
 
-def create_dataloader(args, phase, rank, world_size):
+def create_dataloader(args, phase, rank, world_size, is_distributed):
     if phase == 'vimeo':
         if rank == 0:
             print(f"\n[DataLoader] Initializing PHASE 1: Vimeo-90K (7 Frames)...")
@@ -47,12 +42,13 @@ def create_dataloader(args, phase, rank, world_size):
     else:
         raise ValueError("Unknown phase")
 
-    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=True)
+    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=True) \
+        if is_distributed else None
 
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=(sampler is None),
         sampler=sampler,
         num_workers=args.num_workers,
         pin_memory=True,
@@ -65,21 +61,35 @@ def create_dataloader(args, phase, rank, world_size):
     return loader, sampler
 
 def train(args):
-    local_rank = int(os.environ["LOCAL_RANK"])
-    torch.cuda.set_device(local_rank)
-    device = torch.device(f'cuda:{local_rank}')
-    dist.init_process_group(backend="nccl", init_method="env://")
-    world_size = dist.get_world_size()
+    if not torch.cuda.is_available():
+        raise RuntimeError("Training requires a CUDA-capable GPU.")
+
+    is_distributed = 'LOCAL_RANK' in os.environ
+
+    if is_distributed:
+        local_rank = int(os.environ["LOCAL_RANK"])
+        torch.cuda.set_device(local_rank)
+        device = torch.device(f'cuda:{local_rank}')
+        dist.init_process_group(backend="nccl", init_method="env://")
+        world_size = dist.get_world_size()
+    else:
+        local_rank = 0
+        device = torch.device('cuda')
+        world_size = 1
 
     TOTAL_ITERATIONS = args.total_iterations
     SWITCH_ITERATION = args.switch_iter
 
     if local_rank == 0:
-        print(f"[Init] Training: NanoVSR")
+        mode = f"DDP on {world_size} GPUs" if is_distributed else "single GPU"
+        print(f"[Init] Training: NanoVSR ({mode}, global batch size: {world_size * args.batch_size})")
         print(f"[Init] Schedule: Vimeo (0-{SWITCH_ITERATION}k) -> REDS ({SWITCH_ITERATION}k-{TOTAL_ITERATIONS}k)")
 
     nanovsr = NanoVSR(num_feat=args.num_feat, num_blocks=args.num_blocks).to(device)
-    model = DDP(nanovsr, device_ids=[local_rank], find_unused_parameters=False)
+    if is_distributed:
+        model = DDP(nanovsr, device_ids=[local_rank], find_unused_parameters=False)
+    else:
+        model = nanovsr
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.99))
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=TOTAL_ITERATIONS, eta_min=1e-7)
@@ -91,7 +101,7 @@ def train(args):
     best_psnr = 0.0
     current_phase = 'vimeo'
 
-    train_loader, train_sampler = create_dataloader(args, 'vimeo', local_rank, world_size)
+    train_loader, train_sampler = create_dataloader(args, 'vimeo', local_rank, world_size, is_distributed)
     train_iter = iter(train_loader)
 
     while current_iter < TOTAL_ITERATIONS:
@@ -106,13 +116,14 @@ def train(args):
             torch.cuda.empty_cache()
 
             current_phase = 'reds'
-            train_loader, train_sampler = create_dataloader(args, 'reds', local_rank, world_size)
+            train_loader, train_sampler = create_dataloader(args, 'reds', local_rank, world_size, is_distributed)
             train_iter = iter(train_loader)
 
         try:
             batch = next(train_iter)
         except StopIteration:
-            train_sampler.set_epoch(current_iter)
+            if train_sampler is not None:
+                train_sampler.set_epoch(current_iter)
             train_iter = iter(train_loader)
             batch = next(train_iter)
 
@@ -139,11 +150,12 @@ def train(args):
             if current_iter % 10000 == 0 or current_iter == SWITCH_ITERATION:
                 ckpt_path = Path(args.output_dir) / f"checkpoint_iter_{current_iter}.pth"
                 ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-                torch.save(model.module.state_dict(), ckpt_path)
+                torch.save(nanovsr.state_dict(), ckpt_path)
 
             torch.cuda.empty_cache()
 
-    dist.destroy_process_group()
+    if is_distributed:
+        dist.destroy_process_group()
 
 
 def main():

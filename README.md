@@ -2,7 +2,7 @@
 
 # NanoVSR: Towards Real-Time Video Super-Resolution on Edge Devices
 
-### Accepted to ECCV 2026
+### ECCV 2026
 
 [Filip Pawlicki](https://orcid.org/0009-0001-3375-8091) · [Marcel Kańduła](https://orcid.org/0009-0001-1314-5511) · [Marcin Pucek](https://orcid.org/0009-0003-9879-8195) · [Kamil Dobies](https://orcid.org/0009-0007-0441-2140)
 
@@ -10,6 +10,7 @@ Gdańsk University of Technology
 
 [![arXiv](https://img.shields.io/badge/arXiv-2607.10495-b31b1b)](https://arxiv.org/abs/2607.10495)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.1-ee4c2c)](https://pytorch.org/)
 
 <img src="assets/teaser.gif" width="720" alt="Low-resolution input vs. NanoVSR-644k output (4x upscaling)"/>
 
@@ -36,12 +37,12 @@ The baseline NanoVSR-644k reaches **28.64 dB PSNR on REDS4 at 27.20 FPS** on an 
 
 All models perform 4× upscaling and were trained with the two-stage curriculum (50k iterations on Vimeo-90K, then 100k on REDS). PSNR/SSIM: RGB for REDS4, Y-channel for Vid4 and Vimeo-90K-T. Runtime is ms/frame for a 180×320 input on an H100 (FP32); FPS is measured on Jetson Orin NX 16GB (25 W) with TensorRT FP16, 180×320 input, T=15.
 
-| Model | Params | REDS4 | Vid4 | Vimeo-90K-T | H100 (ms) | Orin NX (FPS) |                                                Download                                                 |
-| :--- | ---: | :---: | :---: | :---: | ---: | ---: |:-------------------------------------------------------------------------------------------------------:|
-| NanoVSR-226k | 226k | 28.23 / 0.8057 | 25.26 / 0.7252 | 34.31 / 0.9130 | 1.910 | 43.86 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_226k.pth)       |
-| **NanoVSR-644k** (baseline) | 644k | 28.64 / 0.8215 | 26.05 / 0.7761 | 35.00 / 0.9226 | 2.982 | 27.20 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_644k.pth)       |
-| NanoVSR-1.7M | 1.7M | 29.15 / 0.8364 | 26.44 / 0.7964 | 35.49 / 0.9294 | 4.268 | 19.58 |       [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_1.7m.pth)       |
-| NanoVSR-5.4M | 5.4M | 29.73 / 0.8526 | 26.76 / 0.8089 | 35.85 / 0.9335 | 8.547 | 8.66 |             [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_5.4m.pth)              |
+| Model | Params | Blocks N | Channels F | REDS4 | Vid4 | Vimeo-90K-T | H100 (ms) | Orin NX (FPS) | Download |
+| :--- | ---: | ---: | ---: | :---: | :---: | :---: | ---: | ---: | :---: |
+| NanoVSR-226k | 226k | 8 | 32 | 28.23 / 0.8057 | 25.26 / 0.7252 | 34.31 / 0.9130 | 1.910 | 43.86 | [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_226k.pth) |
+| **NanoVSR-644k** (baseline) | 644k | 12 | 48 | 28.64 / 0.8215 | 26.05 / 0.7761 | 35.00 / 0.9226 | 2.982 | 27.20 | [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_644k.pth) |
+| NanoVSR-1.7M | 1.7M | 20 | 64 | 29.15 / 0.8364 | 26.44 / 0.7964 | 35.49 / 0.9294 | 4.268 | 19.58 | [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_1.7m.pth) |
+| NanoVSR-5.4M | 5.4M | 30 | 96 | 29.73 / 0.8526 | 26.76 / 0.8089 | 35.85 / 0.9335 | 8.547 | 8.66 | [weights](https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_5.4m.pth) |
 
 <details>
 <summary>All architectural configurations (scaling study)</summary>
@@ -63,7 +64,7 @@ All models perform 4× upscaling and were trained with the two-stage curriculum 
 
 ```bash
 git clone https://github.com/filippawlicki/nanovsr.git
-cd NanoVSR
+cd nanovsr
 
 conda create -n nanovsr python=3.11 -y
 conda activate nanovsr
@@ -74,6 +75,24 @@ pip install -r requirements.txt
 ```
 
 The code was tested with Python 3.13, PyTorch 2.10.0, CUDA 12.8 (training/inference on H100) and TensorRT 10.3 (deployment on Jetson Orin NX).
+
+## Quick Demo
+
+Upscale any low-resolution video (or a directory of frames) 4× with a pretrained checkpoint — no datasets required:
+
+```bash
+python demo.py --checkpoint checkpoints/nanovsr_644k.pth --input my_clip.mp4
+```
+
+The result is written next to the input as `my_clip_x4.mp4`. Useful flags:
+
+- `--compare` — write a labeled side-by-side *LR (nearest-neighbor) vs. NanoVSR* video (like the teaser above);
+- `--input frames_dir/ --fps 30` — read a directory of PNG/JPG frames instead of a video file;
+- `--chunk_size 15` — temporal window per forward pass (the paper's edge setting); lower it if you run out of memory;
+- `--fp16` — half-precision inference on CUDA;
+- `--max_frames 100` — quick test on the first N frames.
+
+NanoVSR expects genuinely low-resolution input (the paper operates on 180×320 and 270×480 frames); feeding an HD video will be slow and memory-hungry.
 
 ## Data Preparation
 
@@ -110,7 +129,7 @@ data/
 
 The two-stage curriculum is handled automatically: 7-frame Vimeo-90K sequences for the first 50k iterations, then 30-frame REDS sequences until 150k. 256×256 GT patches, Charbonnier loss, cosine annealing from 3e-4 to 1e-7, BF16 AMP and gradient clipping are the script defaults.
 
-launch with `torchrun`; the paper uses 4 GPUs with a per-GPU batch size of 3 (**global batch size 12**):
+**Multi-GPU (paper setup)** — launch with `torchrun`; the paper uses 4 GPUs with a per-GPU batch size of 3 (**global batch size 12**):
 
 ```bash
 # NanoVSR-644k (baseline)
@@ -121,6 +140,18 @@ torchrun --nproc_per_node=4 train.py \
     --num_blocks 12 \
     --num_feat 48 \
     --batch_size 3
+```
+
+**Single GPU** — run the same script with plain `python` (DDP is bypassed automatically):
+
+```bash
+python train.py \
+    --vimeo_root data/vimeo_septuplet \
+    --reds_root data/REDS \
+    --output_dir experiments/nanovsr_644k \
+    --num_blocks 12 \
+    --num_feat 48 \
+    --batch_size 12
 ```
 
 The global batch size is `#GPUs × --batch_size`; to reproduce paper results keep it at 12 (reduce `--batch_size` if you run out of memory, at the cost of a slightly different training trajectory).
@@ -147,6 +178,25 @@ To train other variants, change the architecture flags according to the Model Zo
 
 </details>
 
+## Evaluation
+
+A single command runs the model on the benchmarks and reports PSNR/SSIM with the paper's protocol (REDS4 in RGB; Vid4 and Vimeo-90K-T on the Y channel; Vimeo-90K-T on the center frame of each septuplet). The architecture is detected from the checkpoint and the model is automatically reparameterized into its fused deploy form:
+
+```bash
+python evaluate.py --checkpoint checkpoints/nanovsr_644k.pth --data_root data
+```
+
+- `--datasets REDS4 Vid4` evaluates a subset; benchmarks missing under `--data_root` are skipped.
+- `--save_images` additionally writes the SR frames to `results/NanoVSR/{REDS4,Vid4,Vimeo90K}/<clip>/` (off by default).
+
+Pre-computed SR frames — e.g. produced by a TensorRT engine — can be scored directly, without running the model:
+
+```bash
+python evaluate.py --datasets REDS4 \
+    --sr_root results/trt/REDS4 \
+    --gt_root data/REDS/GT/train/train_sharp
+```
+
 ## Pretrained Models
 
 Download the checkpoints from the [Releases page](https://github.com/filippawlicki/nanovsr/releases) (direct links in the [Model Zoo](#model-zoo)) and place them in `checkpoints/`:
@@ -155,6 +205,8 @@ Download the checkpoints from the [Releases page](https://github.com/filippawlic
 mkdir -p checkpoints
 wget -P checkpoints https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_644k.pth
 ```
+
+Checkpoints store the multi-branch (training) topology; `demo.py`, `evaluate.py` and `export_onnx.py` fuse them into the single-branch deploy form on load.
 
 ## ONNX Export & TensorRT Deployment
 
@@ -184,17 +236,43 @@ Measured edge throughput (TensorRT FP16, T=15):
 | NanoVSR-226k | 270×480 | 10.51 FPS | 19.55 FPS |
 | NanoVSR-644k | 270×480 | 7.19 FPS | 12.82 FPS |
 
+## Repository Structure
+
+```
+nanovsr/
+├── models/
+│   └── nanovsr.py       # NanoVSR architecture + RepVGG-style reparameterizable blocks
+├── dataset.py           # REDS / Vimeo-90K dataloaders, augmentations (incl. CutBlur)
+├── train.py             # Two-stage curriculum training (single GPU or DDP)
+├── evaluate.py          # Benchmark evaluation: PSNR / SSIM, optional frame saving
+├── demo.py              # 4x upscaling of arbitrary videos (--compare for side-by-side)
+├── export_onnx.py       # Reparameterized ONNX export for TensorRT
+├── utils.py             # Checkpoint loading / architecture detection helpers
+└── assets/              # Visual comparison media
+```
+
 ## Citation
 
 If you find this work useful, please cite:
 
 ```bibtex
-comming soon...
+@inproceedings{pawlicki2026nanovsr,
+  title     = {{NanoVSR}: Towards Real-Time Video Super-Resolution on Edge Devices},
+  author    = {Pawlicki, Filip and Ka{\'n}du{\l}a, Marcel and Pucek, Marcin and Dobies, Kamil},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  year      = {2026}
+}
 ```
 
 ## License
 
 This project is released under the [MIT License](LICENSE).
+
+## Acknowledgements
+
+The block design builds on structural reparameterization from [RepVGG](https://github.com/DingXiaoH/RepVGG), and our evaluation protocol follows [BasicSR](https://github.com/XPixelGroup/BasicSR). We thank the authors of [REDS](https://seungjunnah.github.io/Datasets/reds.html), [Vimeo-90K](http://toflow.csail.mit.edu/) and Vid4 for the datasets.
+
+The calculations were carried out using the computers of the Centre of Informatics Tricity Academic Supercomputer & Network. The research was supported in part by the project "Cloud Artificial Intelligence Service Engineering (CAISE) platform to create universal and smart services for various application areas", No. KPOD.05.10-IW.10-0005/24, as part of the European IPCEI-CIS program, financed by NRRP (National Recovery and Resilience Plan) funds.
 
 ## Contact
 
