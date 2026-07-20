@@ -63,7 +63,7 @@ All models perform 4× upscaling and were trained with the two-stage curriculum 
 
 ```bash
 git clone https://github.com/filippawlicki/nanovsr.git
-cd NanoVSR
+cd nanovsr
 
 conda create -n nanovsr python=3.11 -y
 conda activate nanovsr
@@ -74,6 +74,24 @@ pip install -r requirements.txt
 ```
 
 The code was tested with Python 3.13, PyTorch 2.10.0, CUDA 12.8 (training/inference on H100) and TensorRT 10.3 (deployment on Jetson Orin NX).
+
+## Quick Demo
+
+Upscale any low-resolution video (or a directory of frames) 4× with a pretrained checkpoint — no datasets required:
+
+```bash
+python demo.py --checkpoint checkpoints/nanovsr_644k.pth --input my_clip.mp4
+```
+
+The result is written next to the input as `my_clip_x4.mp4`. Useful flags:
+
+- `--compare` — write a labeled side-by-side *LR (nearest-neighbor) vs. NanoVSR* video (like the teaser above);
+- `--input frames_dir/ --fps 30` — read a directory of PNG/JPG frames instead of a video file;
+- `--chunk_size 15` — temporal window per forward pass (the paper's edge setting); lower it if you run out of memory;
+- `--fp16` — half-precision inference on CUDA;
+- `--max_frames 100` — quick test on the first N frames.
+
+NanoVSR expects genuinely low-resolution input (the paper operates on 180×320 and 270×480 frames); feeding an HD video will be slow and memory-hungry.
 
 ## Data Preparation
 
@@ -110,7 +128,7 @@ data/
 
 The two-stage curriculum is handled automatically: 7-frame Vimeo-90K sequences for the first 50k iterations, then 30-frame REDS sequences until 150k. 256×256 GT patches, Charbonnier loss, cosine annealing from 3e-4 to 1e-7, BF16 AMP and gradient clipping are the script defaults.
 
-launch with `torchrun`; the paper uses 4 GPUs with a per-GPU batch size of 3 (**global batch size 12**):
+**Multi-GPU (paper setup)** — launch with `torchrun`; the paper uses 4 GPUs with a per-GPU batch size of 3 (**global batch size 12**):
 
 ```bash
 # NanoVSR-644k (baseline)
@@ -121,6 +139,18 @@ torchrun --nproc_per_node=4 train.py \
     --num_blocks 12 \
     --num_feat 48 \
     --batch_size 3
+```
+
+**Single GPU** — run the same script with plain `python` (DDP is bypassed automatically):
+
+```bash
+python train.py \
+    --vimeo_root data/vimeo_septuplet \
+    --reds_root data/REDS \
+    --output_dir experiments/nanovsr_644k \
+    --num_blocks 12 \
+    --num_feat 48 \
+    --batch_size 12
 ```
 
 The global batch size is `#GPUs × --batch_size`; to reproduce paper results keep it at 12 (reduce `--batch_size` if you run out of memory, at the cost of a slightly different training trajectory).
@@ -147,6 +177,25 @@ To train other variants, change the architecture flags according to the Model Zo
 
 </details>
 
+## Evaluation
+
+A single command runs the model on the benchmarks and reports PSNR/SSIM with the paper's protocol (REDS4 in RGB; Vid4 and Vimeo-90K-T on the Y channel; Vimeo-90K-T on the center frame of each septuplet). The architecture is detected from the checkpoint and the model is automatically reparameterized into its fused deploy form:
+
+```bash
+python evaluate.py --checkpoint checkpoints/nanovsr_644k.pth --data_root data
+```
+
+- `--datasets REDS4 Vid4` evaluates a subset; benchmarks missing under `--data_root` are skipped.
+- `--save_images` additionally writes the SR frames to `results/NanoVSR/{REDS4,Vid4,Vimeo90K}/<clip>/` (off by default).
+
+Pre-computed SR frames — e.g. produced by a TensorRT engine — can be scored directly, without running the model:
+
+```bash
+python evaluate.py --datasets REDS4 \
+    --sr_root results/trt/REDS4 \
+    --gt_root data/REDS/GT/train/train_sharp
+```
+
 ## Pretrained Models
 
 Download the checkpoints from the [Releases page](https://github.com/filippawlicki/nanovsr/releases) (direct links in the [Model Zoo](#model-zoo)) and place them in `checkpoints/`:
@@ -155,6 +204,8 @@ Download the checkpoints from the [Releases page](https://github.com/filippawlic
 mkdir -p checkpoints
 wget -P checkpoints https://github.com/filippawlicki/nanovsr/releases/download/v1.0/nanovsr_644k.pth
 ```
+
+Checkpoints store the multi-branch (training) topology; `demo.py`, `evaluate.py` and `export_onnx.py` fuse them into the single-branch deploy form on load.
 
 ## ONNX Export & TensorRT Deployment
 
@@ -189,7 +240,15 @@ Measured edge throughput (TensorRT FP16, T=15):
 If you find this work useful, please cite:
 
 ```bibtex
-comming soon...
+@misc{pawlicki2026nanovsrrealtimevideosuperresolution,
+      title={NanoVSR: Towards Real-Time Video Super-Resolution on Edge Devices}, 
+      author={Filip Pawlicki and Marcel Kańduła and Marcin Pucek and Kamil Dobies},
+      year={2026},
+      eprint={2607.10495},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2607.10495}, 
+}
 ```
 
 ## License

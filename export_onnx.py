@@ -16,7 +16,7 @@ def main():
                         help='Temporal window T baked into the graph (paper: 15)')
     parser.add_argument('--height', type=int, default=180, help='LR input height')
     parser.add_argument('--width', type=int, default=320, help='LR input width')
-    parser.add_argument('--opset', type=int, default=17)
+    parser.add_argument('--opset', type=int, default=18)
     parser.add_argument('--dynamic_spatial', action='store_true',
                         help='Mark height/width as dynamic axes (static shapes give the best TensorRT engines)')
     parser.add_argument('--no_deploy', action='store_true',
