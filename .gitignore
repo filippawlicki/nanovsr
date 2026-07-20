@@ -16,3 +16,4 @@ output_auto_curriculum/
 .idea/
 .vscode/
 .DS_Store
+__MACOSX/
