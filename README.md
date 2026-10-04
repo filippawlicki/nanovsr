@@ -241,14 +241,17 @@ Measured edge throughput (TensorRT FP16, T=15):
 If you find this work useful, please cite:
 
 ```bibtex
-@misc{pawlicki2026nanovsr,
-      title={NanoVSR: Towards Real-Time Video Super-Resolution on Edge Devices}, 
-      author={Filip Pawlicki and Marcel Kańduła and Marcin Pucek and Kamil Dobies},
-      year={2026},
-      eprint={2607.10495},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2607.10495}, 
+@InProceedings{pawlicki2026nanovsr,
+      author    = {Pawlicki, Filip and Ka{\'n}du{\l}a, Marcel and Pucek, Marcin and Dobies, Kamil},
+      title     = {NanoVSR: Towards Real-Time Video Super-Resolution on Edge Devices},
+      booktitle = {Computer Vision -- ECCV 2026},
+      year      = {2026},
+      publisher = {Springer Nature Switzerland},
+      address   = {Cham},
+      pages     = {620--639},
+      isbn      = {978-3-032-37356-4},
+      doi       = {10.1007/978-3-032-37356-4_34},
+      url       = {https://doi.org/10.1007/978-3-032-37356-4_34},
 }
 ```
 
